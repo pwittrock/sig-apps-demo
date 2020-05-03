@@ -1,0 +1,36 @@
+apiVersion: kpt.dev/v1alpha1
+kind: Kptfile
+metadata:
+  name: etcd
+packageMetadata:
+  shortDescription: sample description
+openAPI:
+  definitions:
+    io.k8s.cli.setters.replicas:
+      x-k8s-cli:
+        setter:
+          name: replicas
+          value: "1"
+    io.k8s.cli.setters.name:
+      x-k8s-cli:
+        setter:
+          name: name
+          value: etcd
+    io.k8s.cli.substitutions.name-leader-election:
+      x-k8s-cli:
+        substitution:
+          name: name-leader-election
+          pattern: NAME_SETTER-leader-election
+          values:
+          - marker: NAME_SETTER
+            ref: '#/definitions/io.k8s.cli.setters.name'
+    io.k8s.cli.substitutions.initial-cluster:
+      x-k8s-cli:
+        substitution:
+          name: initial-cluster
+          pattern: NAME_SETTER-0=$(INITIAL_CLUSTER)
+          values:
+          - marker: NAME_SETTER
+            ref: '#/definitions/io.k8s.cli.setters.name'
+functions:
+  autoRunStarlark: true

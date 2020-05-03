@@ -1,0 +1,108 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: etcd # {"$ref":"#/definitions/io.k8s.cli.setters.name"}
+  labels:
+    app: etcd
+    instance: etcd # {"$ref":"#/definitions/io.k8s.cli.setters.name"}
+spec:
+  replicas: 1 # {"$ref":"#/definitions/io.k8s.cli.setters.replicas"}
+  selector:
+    matchLabels:
+      app: etcd
+      instance: etcd # {"$ref":"#/definitions/io.k8s.cli.setters.name"}
+  template:
+    metadata:
+      labels:
+        app: etcd
+        instance: etcd # {"$ref":"#/definitions/io.k8s.cli.setters.name"}
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: etcd
+        image: quay.io/coreos/etcd:v3.4.4
+        command:
+        - /usr/local/bin/etcd
+        - --name
+        - $(POD_NAME)
+        - --initial-advertise-peer-urls
+        - http://$(POD_NAME):2380
+        - --listen-peer-urls
+        - http://0.0.0.0:2380
+        - --listen-client-urls
+        - http://0.0.0.0:2379
+        - --advertise-client-urls
+        - http://$(POD_NAME):2379
+        - --initial-cluster
+        - $(INITIAL_CLUSTER)
+        - --initial-cluster-state
+        - new
+        ports:
+        - name: client
+          protocol: TCP
+          containerPort: 2379
+        - name: server
+          protocol: TCP
+          containerPort: 2380
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: INITIAL_CLUSTER
+          # note: owned by reconcile.star -- changed when replicas are 'set'
+          value: etcd-0=http://etcd-0:2380
+  serviceName: etcd
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: etcd # {"$ref":"#/definitions/io.k8s.cli.setters.name"}
+  labels:
+    app: etcd
+    instance: etcd # {"$ref":"#/definitions/io.k8s.cli.setters.name"}
+spec:
+  selector:
+    app: etcd
+    instance: etcd # {"$ref":"#/definitions/io.k8s.cli.setters.name"}
+  ports:
+  - name: client
+    port: 2379
+    targetPort: client
+  - name: server
+    port: 2380
+    targetPort: server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: etcd-leader-election # {"$ref":"#/definitions/io.k8s.cli.substitutions.name-leader-election"}
+  labels:
+    app: etcd
+    instance: etcd-leader-election # {"$ref":"#/definitions/io.k8s.cli.substitutions.name-leader-election"}
+spec:
+  selector:
+    app: etcd
+    instance: etcd # {"$ref":"#/definitions/io.k8s.cli.setters.name"}
+  ports:
+  - name: client
+    port: 2379
+    targetPort: client
+  - name: server
+    port: 2380
+    targetPort: server
+  clusterIP: None
