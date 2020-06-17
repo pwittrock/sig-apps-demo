@@ -19,6 +19,9 @@ metadata:
   labels:
     app: etcd
     instance: etcd # {"$ref":"#/definitions/io.k8s.cli.setters.name"}
+  annotations:
+    config.kubernetes.io/function: |
+      starlark: {path: reconcile.star, name: etcd}
 spec:
   replicas: 1 # {"$ref":"#/definitions/io.k8s.cli.setters.replicas"}
   selector:
